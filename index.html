@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUGIB Outcome Predictor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .disclaimer {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-left: 4px solid #ffeeba;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        label {
+            font-weight: 600;
+            flex-basis: 50%;
+        }
+        input[type="number"], select {
+            flex-basis: 45%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .section-title {
+            margin-top: 30px;
+            color: #3498db;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #result-box {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e2eef9;
+            border: 1px solid #b8daff;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #result-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #004085;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>AUGIB Outcome Predictor</h1>
+    
+    <div class="disclaimer">
+        <strong>Disclaimer:</strong> This tool is for research and educational purposes only. It is not intended for clinical diagnosis or decision-making. 
+    </div>
+
+    <form id="augib-form">
+        
+        <div class="section-title">Patient Demographics & Vitals</div>
+        <div class="form-group">
+            <label for="N_AGE">Age (Years)</label>
+            <input type="number" id="N_AGE" required>
+        </div>
+        <div class="form-group">
+            <label for="N_SBP">Systolic Blood Pressure (mmHg)</label>
+            <input type="number" id="N_SBP" required>
+        </div>
+
+        <div class="section-title">Laboratory Values</div>
+        <div class="form-group">
+            <label for="N_ALBUMIN">Albumin</label>
+            <input type="number" id="N_ALBUMIN" step="0.01" required>
+        </div>
+        <div class="form-group">
+            <label for="N_ALP">Alkaline Phosphatase (ALP)</label>
+            <input type="number" id="N_ALP" step="0.1" required>
+        </div>
+        <div class="form-group">
+            <label for="N_BILIRUBIN">Bilirubin</label>
+            <input type="number" id="N_BILIRUBIN" step="0.1" required>
+        </div>
+        <div class="form-group">
+            <label for="N_SODIUM">Sodium</label>
+            <input type="number" id="N_SODIUM" step="0.1" required>
+        </div>
+        <div class="form-group">
+            <label for="N_UREA">Urea</label>
+            <input type="number" id="N_UREA" step="0.1" required>
+        </div>
+        <div class="form-group">
+            <label for="N_INR">INR</label>
+            <input type="number" id="N_INR" step="0.01" required>
+        </div>
+        <div class="form-group">
+            <label for="N_PLT_NO">Platelet Count (PLT)</label>
+            <input type="number" id="N_PLT_NO" required>
+        </div>
+        <div class="form-group">
+            <label for="N_PC_NO">Packed Cells Number (PC NO)</label>
+            <input type="number" id="N_PC_NO" required>
+        </div>
+
+        <div class="section-title">Clinical Assessments</div>
+        <div class="form-group">
+            <label for="C_ACIDOSIS">Acidosis Status</label>
+            <select id="C_ACIDOSIS">
+                <option value="0">None / Normal (0)</option>
+                <option value="1">Mild / Category 1</option>
+                <option value="2">Severe / Category 2</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="C_ICU_PRIOR">Prior ICU Admissions</label>
+            <select id="C_ICU_PRIOR">
+                <option value="0">None (0)</option>
+                <option value="1">One (1)</option>
+                <option value="2">Two or more (2)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="C_CANCER">Cancer Status</label>
+            <select id="C_CANCER">
+                <option value="0">Negative (0)</option>
+                <option value="1">Positive (1+)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="C_NEED_TE">Need for Therapeutic Endoscopy</label>
+            <select id="C_NEED_TE">
+                <option value="0">No / Other</option>
+                <option value="2">Yes (Category 2)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="C_FORREST">Forrest Classification</label>
+            <select id="C_FORREST">
+                <option value="1">Class I / IIa / IIb</option>
+                <option value="3">Class III (Category 3)</option>
+            </select>
+        </div>
+
+        <button type="button" onclick="calculateRisk()">Calculate Risk</button>
+    </form>
+
+    <div id="result-box">
+        <h3>Model Prediction</h3>
+        <p id="result-value">--</p>
+        <p style="font-size: 0.9em; color: #555;">(Simulation only. Connect to your ML backend via API or TensorFlow.js)</p>
+    </div>
+
+</div>
+
+<script>
+    function calculateRisk() {
+        // 1. Gather Numeric Inputs
+        const n_age = parseFloat(document.getElementById('N_AGE').value) || 0;
+        const n_sbp = parseFloat(document.getElementById('N_SBP').value) || 0;
+        const n_albumin = parseFloat(document.getElementById('N_ALBUMIN').value) || 0;
+        const n_alp = parseFloat(document.getElementById('N_ALP').value) || 0;
+        const n_bilirubin = parseFloat(document.getElementById('N_BILIRUBIN').value) || 0;
+        const n_sodium = parseFloat(document.getElementById('N_SODIUM').value) || 0;
+        const n_urea = parseFloat(document.getElementById('N_UREA').value) || 0;
+        const n_inr = parseFloat(document.getElementById('N_INR').value) || 0;
+        const n_plt_no = parseFloat(document.getElementById('N_PLT_NO').value) || 0;
+        const n_pc_no = parseFloat(document.getElementById('N_PC_NO').value) || 0;
+
+        // 2. Gather Categorical Inputs and One-Hot Encode them for the model
+        const acidosis = document.getElementById('C_ACIDOSIS').value;
+        const c_acidosis_1 = (acidosis === "1") ? 1 : 0;
+        const c_acidosis_2 = (acidosis === "2") ? 1 : 0;
+
+        const icu = document.getElementById('C_ICU_PRIOR').value;
+        const c_icu_prior_1 = (icu === "1") ? 1 : 0;
+        const c_icu_prior_2 = (icu === "2") ? 1 : 0;
+
+        const cancer = document.getElementById('C_CANCER').value;
+        const c_cancer_0 = (cancer === "0") ? 1 : 0; // Assuming 1 means category 0 is TRUE
+
+        const need_te = document.getElementById('C_NEED_TE').value;
+        const c_need_te_2 = (need_te === "2") ? 1 : 0;
+
+        const forrest = document.getElementById('C_FORREST').value;
+        const c_forrest_3 = (forrest === "3") ? 1 : 0;
+
+        // 3. Create the feature array/object expected by your model
+        const features = {
+            N_PC_NO: n_pc_no,
+            C_ACIDOSIS_1: c_acidosis_1,
+            N_ALBUMIN: n_albumin,
+            N_AGE: n_age,
+            C_NEED_TE_2: c_need_te_2,
+            N_ALP: n_alp,
+            N_SODIUM: n_sodium,
+            C_CANCER_0: c_cancer_0,
+            N_INR: n_inr,
+            N_PLT_NO: n_plt_no,
+            C_FORREST_3: c_forrest_3,
+            N_BILIRUBIN: n_bilirubin,
+            C_ACIDOSIS_2: c_acidosis_2,
+            C_ICU_PRIOR_1: c_icu_prior_1,
+            N_UREA: n_urea,
+            C_ICU_PRIOR_2: c_icu_prior_2,
+            N_SBP: n_sbp
+        };
+
+        console.log("Input Features prepared for model:", features);
+
+        // 4. MOCK PREDICTION LOGIC 
+        // ------------------------------------------------------------------
+        // REPLACE THIS SECTION with your actual API call to HuggingFace/AWS 
+        // OR your TensorFlow.js inference code.
+        // ------------------------------------------------------------------
+        
+        // Simulating a dummy calculation based on Age and SBP for demonstration
+        let dummyRiskScore = (n_age > 65 ? 20 : 5) + (n_sbp < 100 ? 30 : 0);
+        let predictionText = "Low Risk";
+        if (dummyRiskScore > 20) predictionText = "High Risk";
+
+        // 5. Display the result
+        document.getElementById('result-value').innerText = predictionText + " (Mock Score: " + dummyRiskScore + ")";
+        document.getElementById('result-box').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
