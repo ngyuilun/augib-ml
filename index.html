@@ -98,101 +98,106 @@
     <h1>AUGIB Outcome Predictor</h1>
     
     <div class="disclaimer">
-        <strong>Disclaimer:</strong> This tool is for research and educational purposes only. It is not intended for clinical diagnosis or decision-making. 
+        <strong>Disclaimer:</strong> This tool is for research and educational purposes only. It is advised to verify the result before clinical usage.
     </div>
 
     <form id="augib-form">
         
         <div class="section-title">Patient Demographics & Vitals</div>
         <div class="form-group">
-            <label for="N_AGE">Age (Years)</label>
+            <label for="N_AGE">Age (Years) *</label>
             <input type="number" id="N_AGE" required>
         </div>
         <div class="form-group">
-            <label for="N_SBP">Systolic Blood Pressure (mmHg)</label>
+            <label for="N_SBP">Systolic blood pressure (mmHg) *</label>
             <input type="number" id="N_SBP" required>
         </div>
 
         <div class="section-title">Laboratory Values</div>
         <div class="form-group">
-            <label for="N_ALBUMIN">Albumin</label>
+            <label for="N_ALBUMIN">Serum albumin (g/L) *</label>
             <input type="number" id="N_ALBUMIN" step="0.01" required>
         </div>
         <div class="form-group">
-            <label for="N_ALP">Alkaline Phosphatase (ALP)</label>
+            <label for="N_ALP">Alkaline phosphatase (IU/L) *</label>
             <input type="number" id="N_ALP" step="0.1" required>
         </div>
         <div class="form-group">
-            <label for="N_BILIRUBIN">Bilirubin</label>
+            <label for="N_BILIRUBIN">Serum bilirubin(umol/L) *</label>
             <input type="number" id="N_BILIRUBIN" step="0.1" required>
         </div>
         <div class="form-group">
-            <label for="N_SODIUM">Sodium</label>
+            <label for="N_SODIUM">Serum sodium (mmol/L) *</label>
             <input type="number" id="N_SODIUM" step="0.1" required>
         </div>
         <div class="form-group">
-            <label for="N_UREA">Urea</label>
+            <label for="N_UREA">Serum urea (mmol/L) *</label>
             <input type="number" id="N_UREA" step="0.1" required>
         </div>
         <div class="form-group">
-            <label for="N_INR">INR</label>
+            <label for="N_INR">INR *</label>
             <input type="number" id="N_INR" step="0.01" required>
         </div>
         <div class="form-group">
-            <label for="N_PLT_NO">Platelet Count (PLT)</label>
+            <label for="N_PLT_NO">No. of platelets transfused *</label>
             <input type="number" id="N_PLT_NO" required>
         </div>
         <div class="form-group">
-            <label for="N_PC_NO">Packed Cells Number (PC NO)</label>
+            <label for="N_PC_NO">No. of packed cells transfused *</label>
             <input type="number" id="N_PC_NO" required>
         </div>
 
         <div class="section-title">Clinical Assessments</div>
         <div class="form-group">
-            <label for="C_ACIDOSIS">Acidosis Status</label>
+            <label for="C_ACIDOSIS">Acidosis in venous/arterial blood gas *</label>
             <select id="C_ACIDOSIS">
-                <option value="0">None / Normal (0)</option>
-                <option value="1">Mild / Category 1</option>
-                <option value="2">Severe / Category 2</option>
+                <option value="NA">NONE</option>
+                <option value="1">ARTERIAL</option>
+                <option value="2">VENOUS</option>
             </select>
         </div>
         <div class="form-group">
-            <label for="C_ICU_PRIOR">Prior ICU Admissions</label>
+            <label for="C_ICU_PRIOR">Need for ICU admission before OGD *</label>
             <select id="C_ICU_PRIOR">
-                <option value="0">None (0)</option>
-                <option value="1">One (1)</option>
-                <option value="2">Two or more (2)</option>
+                <option value="1">YES</option>
+                <option value="2">NO</option>
             </select>
         </div>
         <div class="form-group">
-            <label for="C_CANCER">Cancer Status</label>
+            <label for="C_CANCER">Presence of cancer *</label>
             <select id="C_CANCER">
-                <option value="0">Negative (0)</option>
-                <option value="1">Positive (1+)</option>
+                <option value="0">None</option>
+                <option value="1">Localized</option>
+                <option value="2">Metastatic</option>
             </select>
         </div>
         <div class="form-group">
-            <label for="C_NEED_TE">Need for Therapeutic Endoscopy</label>
+            <label for="C_NEED_TE">Need for endoscopic therapy during OGD</label>
             <select id="C_NEED_TE">
-                <option value="0">No / Other</option>
-                <option value="2">Yes (Category 2)</option>
+                <option value="NA">NO OGD DONE</option>
+                <option value="1">YES</option>
+                <option value="2">NO</option>
             </select>
         </div>
         <div class="form-group">
-            <label for="C_FORREST">Forrest Classification</label>
+            <label for="C_FORREST">Forrest classification</label>
             <select id="C_FORREST">
-                <option value="1">Class I / IIa / IIb</option>
-                <option value="3">Class III (Category 3)</option>
+                <option value="NA">No OGD Done</option>
+                <option value="1a">Active spurting</option>
+                <option value="1b">Active oozing</option>
+                <option value="2a">Non-bleeding visible vessel (artery)</option>
+                <option value="2b">Adherent clot</option>
+                <option value="2c">Flat pigmented spot</option>
+                <option value="3">Clean ulcer base</option>
             </select>
         </div>
 
-        <button type="button" onclick="calculateRisk()">Calculate Risk</button>
+        <button type="button" onclick="calculateRisk()">Calculate Probability</button>
     </form>
 
     <div id="result-box">
         <h3>Model Prediction</h3>
         <p id="result-value">--</p>
-        <p style="font-size: 0.9em; color: #555;">(Simulation only. Connect to your ML backend via API or TensorFlow.js)</p>
     </div>
 
 </div>
@@ -211,7 +216,7 @@
         const n_plt_no = parseFloat(document.getElementById('N_PLT_NO').value) || 0;
         const n_pc_no = parseFloat(document.getElementById('N_PC_NO').value) || 0;
 
-        // 2. Gather Categorical Inputs and One-Hot Encode them for the model
+        // 2. Gather Categorical Inputs and One-Hot Encode them based on dataset format
         const acidosis = document.getElementById('C_ACIDOSIS').value;
         const c_acidosis_1 = (acidosis === "1") ? 1 : 0;
         const c_acidosis_2 = (acidosis === "2") ? 1 : 0;
@@ -221,7 +226,7 @@
         const c_icu_prior_2 = (icu === "2") ? 1 : 0;
 
         const cancer = document.getElementById('C_CANCER').value;
-        const c_cancer_0 = (cancer === "0") ? 1 : 0; // Assuming 1 means category 0 is TRUE
+        const c_cancer_0 = (cancer === "0") ? 1 : 0; 
 
         const need_te = document.getElementById('C_NEED_TE').value;
         const c_need_te_2 = (need_te === "2") ? 1 : 0;
@@ -252,19 +257,23 @@
 
         console.log("Input Features prepared for model:", features);
 
-        // 4. MOCK PREDICTION LOGIC 
+        // 4. PREDICTION LOGIC 
         // ------------------------------------------------------------------
-        // REPLACE THIS SECTION with your actual API call to HuggingFace/AWS 
-        // OR your TensorFlow.js inference code.
+        // Connect this to your actual ML API to fetch the real probability
         // ------------------------------------------------------------------
         
-        // Simulating a dummy calculation based on Age and SBP for demonstration
-        let dummyRiskScore = (n_age > 65 ? 20 : 5) + (n_sbp < 100 ? 30 : 0);
-        let predictionText = "Low Risk";
-        if (dummyRiskScore > 20) predictionText = "High Risk";
+        // Placeholder function to output a probability formatting based on inputs
+        // Replace 'probability' with the actual output variable from your model
+        let mock_probability = 0.654; // E.g., 65.4%
+        
+        // Let's create a dynamic mock probability just so the UI moves when testing
+        let dynamic_prob = (n_age > 65 ? 0.3 : 0.1) + (n_sbp < 100 ? 0.4 : 0.1);
+        if (dynamic_prob > 0.99) dynamic_prob = 0.99;
+        
+        const finalPercentage = (dynamic_prob * 100).toFixed(1);
 
         // 5. Display the result
-        document.getElementById('result-value').innerText = predictionText + " (Mock Score: " + dummyRiskScore + ")";
+        document.getElementById('result-value').innerText = "High Risk Probability: " + finalPercentage + "%";
         document.getElementById('result-box').style.display = 'block';
     }
 </script>
