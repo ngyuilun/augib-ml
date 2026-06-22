@@ -471,23 +471,24 @@ async function calculateRisk() {
 
         const results = await session.run(feeds);
         console.log('Raw model output:', results);
+        console.log('Output names:', session.outputNames);
 
-        // Extract probability
-        // LightGBM ONNX output: 'probabilities' (shape [1, 2]) or 'label' + 'probabilities'
+        // Extract probability of positive class (ENDPOINT=1)
+        // With zipmap=False, the ONNX model outputs:
+        //   - 'label': int64 tensor [1] with predicted class
+        //   - 'probabilities': float32 tensor [1, 2] with [prob_class0, prob_class1]
         let probability = 0;
-        if (results.probabilities) {
-            // probabilities tensor: [[prob_class0, prob_class1]]
-            const probs = results.probabilities.data;
-            probability = probs[1]; // probability of positive class (ENDPOINT=1)
-        } else if (results.output_probability) {
-            const probs = results.output_probability.data;
-            probability = probs[1];
+
+        if (results.probabilities && results.probabilities.data) {
+            probability = results.probabilities.data[1];
+            console.log('Probability (class 1):', probability);
         } else {
-            // Fallback: try to find any probability-like output
-            for (const key of session.outputNames) {
-                const output = results[key];
-                if (output.dims.length >= 1 && output.data.length >= 2) {
-                    probability = output.data[1];
+            // Fallback: find the output with 2 values (prob tensor)
+            for (const outputName of session.outputNames) {
+                const output = results[outputName];
+                if (output.data && output.data.length === 2) {
+                    probability = Number(output.data[1]);
+                    console.log(`Extracted probability from "${outputName}":`, probability);
                     break;
                 }
             }
