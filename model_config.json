@@ -1,0 +1,88 @@
+{
+  "features": [
+    "N_PC_NO",
+    "C_ACIDOSIS_1",
+    "N_ALBUMIN",
+    "N_AGE",
+    "C_NEED_TE_2",
+    "N_ALP",
+    "N_SODIUM",
+    "C_CANCER_0",
+    "N_INR",
+    "N_PLT_NO",
+    "C_FORREST_3",
+    "N_BILIRUBIN",
+    "C_ACIDOSIS_2",
+    "C_ICU_PRIOR_1",
+    "N_UREA",
+    "C_ICU_PRIOR_2",
+    "N_SBP"
+  ],
+  "numerical_features": [
+    "N_PC_NO",
+    "N_ALBUMIN",
+    "N_AGE",
+    "N_ALP",
+    "N_SODIUM",
+    "N_INR",
+    "N_PLT_NO",
+    "N_BILIRUBIN",
+    "N_UREA",
+    "N_SBP"
+  ],
+  "categorical_features": [
+    "C_ACIDOSIS_1",
+    "C_NEED_TE_2",
+    "C_CANCER_0",
+    "C_FORREST_3",
+    "C_ACIDOSIS_2",
+    "C_ICU_PRIOR_1",
+    "C_ICU_PRIOR_2"
+  ],
+  "scaler": {
+    "N_PC_NO": {
+      "min": 0.0,
+      "max": 85.0
+    },
+    "N_ALBUMIN": {
+      "min": 7.0,
+      "max": 56.0
+    },
+    "N_AGE": {
+      "min": 17.0,
+      "max": 105.0
+    },
+    "N_ALP": {
+      "min": 12.0,
+      "max": 6558.0
+    },
+    "N_SODIUM": {
+      "min": 101.0,
+      "max": 159.0
+    },
+    "N_INR": {
+      "min": 0.83,
+      "max": 6.6
+    },
+    "N_PLT_NO": {
+      "min": 0.0,
+      "max": 185.0
+    },
+    "N_BILIRUBIN": {
+      "min": 1.0,
+      "max": 652.0
+    },
+    "N_UREA": {
+      "min": 0.8,
+      "max": 92.3
+    },
+    "N_SBP": {
+      "min": 49.0,
+      "max": 254.0
+    }
+  },
+  "model_file": "augib_model.onnx",
+  "description": "AUGIB outcome prediction model (LightGBM exported to ONNX)",
+  "auc_score": 0.9199,
+  "n_features": 17
+}

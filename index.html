@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUGIB Outcome Predictor</title>
+    <!-- ONNX Runtime Web -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.0/dist/ort.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -33,6 +35,38 @@
             border-left: 4px solid #ffeeba;
             font-size: 0.9em;
             margin-bottom: 20px;
+        }
+        .model-status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .model-status.loading {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        .model-status.ready {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .model-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #999;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         .form-group {
             margin-bottom: 15px;
@@ -76,19 +110,47 @@
         button:hover {
             background-color: #218838;
         }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
         #result-box {
             display: none;
             margin-top: 20px;
             padding: 20px;
-            background-color: #e2eef9;
-            border: 1px solid #b8daff;
             border-radius: 5px;
             text-align: center;
+        }
+        #result-box.low-risk {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        #result-box.moderate-risk {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+        }
+        #result-box.high-risk {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
         }
         #result-value {
             font-size: 24px;
             font-weight: bold;
-            color: #004085;
+        }
+        #result-box.low-risk #result-value { color: #155724; }
+        #result-box.moderate-risk #result-value { color: #856404; }
+        #result-box.high-risk #result-value { color: #721c24; }
+        .risk-label {
+            font-size: 14px;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+        .footnote {
+            margin-top: 30px;
+            font-size: 0.8em;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
         }
     </style>
 </head>
@@ -96,14 +158,19 @@
 
 <div class="container">
     <h1>AUGIB Outcome Predictor</h1>
-    
+
     <div class="disclaimer">
         <strong>Disclaimer:</strong> This tool is for research and educational purposes only. It is advised to verify the result before clinical usage.
     </div>
 
+    <div id="model-status" class="model-status loading">
+        <div class="spinner"></div>
+        <span>Loading ML model...</span>
+    </div>
+
     <form id="augib-form">
-        
-        <div class="section-title">Patient Demographics & Vitals</div>
+
+        <div class="section-title">Patient Demographics &amp; Vitals</div>
         <div class="form-group">
             <label for="N_AGE">Age (Years) *</label>
             <input type="number" id="N_AGE" required>
@@ -123,7 +190,7 @@
             <input type="number" id="N_ALP" step="0.1" required>
         </div>
         <div class="form-group">
-            <label for="N_BILIRUBIN">Serum bilirubin(umol/L) *</label>
+            <label for="N_BILIRUBIN">Serum bilirubin (umol/L) *</label>
             <input type="number" id="N_BILIRUBIN" step="0.1" required>
         </div>
         <div class="form-group">
@@ -150,7 +217,7 @@
         <div class="section-title">Clinical Assessments</div>
         <div class="form-group">
             <label for="C_ACIDOSIS">Acidosis in venous/arterial blood gas *</label>
-            <select id="C_ACIDOSIS">
+            <select id="C_ACIDOSIS" required>
                 <option value="NA">NONE</option>
                 <option value="1">ARTERIAL</option>
                 <option value="2">VENOUS</option>
@@ -158,14 +225,14 @@
         </div>
         <div class="form-group">
             <label for="C_ICU_PRIOR">Need for ICU admission before OGD *</label>
-            <select id="C_ICU_PRIOR">
+            <select id="C_ICU_PRIOR" required>
                 <option value="1">YES</option>
                 <option value="2">NO</option>
             </select>
         </div>
         <div class="form-group">
             <label for="C_CANCER">Presence of cancer *</label>
-            <select id="C_CANCER">
+            <select id="C_CANCER" required>
                 <option value="0">None</option>
                 <option value="1">Localized</option>
                 <option value="2">Metastatic</option>
@@ -192,90 +259,278 @@
             </select>
         </div>
 
-        <button type="button" onclick="calculateRisk()">Calculate Probability</button>
+        <button type="button" id="predict-btn" onclick="calculateRisk()" disabled>Loading model...</button>
     </form>
 
     <div id="result-box">
         <h3>Model Prediction</h3>
         <p id="result-value">--</p>
+        <p class="risk-label" id="risk-label"></p>
     </div>
 
+    <div class="footnote">
+        <p>Model: LightGBM (Gradient Boosting Machine) trained on AUGIB dataset. AUC = 0.92.</p>
+        <p>Inference runs entirely in your browser using ONNX Runtime Web. No data is sent to any server.</p>
+    </div>
 </div>
 
 <script>
-    function calculateRisk() {
-        // 1. Gather Numeric Inputs
-        const n_age = parseFloat(document.getElementById('N_AGE').value) || 0;
-        const n_sbp = parseFloat(document.getElementById('N_SBP').value) || 0;
-        const n_albumin = parseFloat(document.getElementById('N_ALBUMIN').value) || 0;
-        const n_alp = parseFloat(document.getElementById('N_ALP').value) || 0;
-        const n_bilirubin = parseFloat(document.getElementById('N_BILIRUBIN').value) || 0;
-        const n_sodium = parseFloat(document.getElementById('N_SODIUM').value) || 0;
-        const n_urea = parseFloat(document.getElementById('N_UREA').value) || 0;
-        const n_inr = parseFloat(document.getElementById('N_INR').value) || 0;
-        const n_plt_no = parseFloat(document.getElementById('N_PLT_NO').value) || 0;
-        const n_pc_no = parseFloat(document.getElementById('N_PC_NO').value) || 0;
+// ============================================================
+// AUGIB ML Model - Client-Side Inference with ONNX Runtime Web
+// ============================================================
 
-        // 2. Gather Categorical Inputs and One-Hot Encode them based on dataset format
-        const acidosis = document.getElementById('C_ACIDOSIS').value;
-        const c_acidosis_1 = (acidosis === "1") ? 1 : 0;
-        const c_acidosis_2 = (acidosis === "2") ? 1 : 0;
+let session = null;
+let modelConfig = null;
 
-        const icu = document.getElementById('C_ICU_PRIOR').value;
-        const c_icu_prior_1 = (icu === "1") ? 1 : 0;
-        const c_icu_prior_2 = (icu === "2") ? 1 : 0;
+// Feature order expected by the ONNX model (must match training exactly)
+const FEATURE_ORDER = [
+    "N_PC_NO",
+    "C_ACIDOSIS_1",
+    "N_ALBUMIN",
+    "N_AGE",
+    "C_NEED_TE_2",
+    "N_ALP",
+    "N_SODIUM",
+    "C_CANCER_0",
+    "N_INR",
+    "N_PLT_NO",
+    "C_FORREST_3",
+    "N_BILIRUBIN",
+    "C_ACIDOSIS_2",
+    "C_ICU_PRIOR_1",
+    "N_UREA",
+    "C_ICU_PRIOR_2",
+    "N_SBP"
+];
 
-        const cancer = document.getElementById('C_CANCER').value;
-        const c_cancer_0 = (cancer === "0") ? 1 : 0; 
+// MinMaxScaler parameters from training data
+// These will be loaded from model_config.json, or use defaults below
+let SCALER_PARAMS = null;
 
-        const need_te = document.getElementById('C_NEED_TE').value;
-        const c_need_te_2 = (need_te === "2") ? 1 : 0;
+/**
+ * Initialize the ONNX model session
+ */
+async function initModel() {
+    const statusEl = document.getElementById('model-status');
+    const btnEl = document.getElementById('predict-btn');
 
-        const forrest = document.getElementById('C_FORREST').value;
-        const c_forrest_3 = (forrest === "3") ? 1 : 0;
+    try {
+        // Load model config (scaler params)
+        const configResp = await fetch('model_config.json');
+        if (configResp.ok) {
+            modelConfig = await configResp.json();
+            SCALER_PARAMS = modelConfig.scaler;
+            console.log('Model config loaded:', modelConfig);
+        } else {
+            console.warn('model_config.json not found, using fallback scaler params');
+            // Fallback: no scaling (features passed as-is)
+            SCALER_PARAMS = null;
+        }
 
-        // 3. Create the feature array/object expected by your model
-        const features = {
-            N_PC_NO: n_pc_no,
-            C_ACIDOSIS_1: c_acidosis_1,
-            N_ALBUMIN: n_albumin,
-            N_AGE: n_age,
-            C_NEED_TE_2: c_need_te_2,
-            N_ALP: n_alp,
-            N_SODIUM: n_sodium,
-            C_CANCER_0: c_cancer_0,
-            N_INR: n_inr,
-            N_PLT_NO: n_plt_no,
-            C_FORREST_3: c_forrest_3,
-            N_BILIRUBIN: n_bilirubin,
-            C_ACIDOSIS_2: c_acidosis_2,
-            C_ICU_PRIOR_1: c_icu_prior_1,
-            N_UREA: n_urea,
-            C_ICU_PRIOR_2: c_icu_prior_2,
-            N_SBP: n_sbp
-        };
+        // Load ONNX model
+        session = await ort.InferenceSession.create('augib_model.onnx');
+        console.log('ONNX model loaded successfully');
+        console.log('Input names:', session.inputNames);
+        console.log('Output names:', session.outputNames);
 
-        console.log("Input Features prepared for model:", features);
+        statusEl.className = 'model-status ready';
+        statusEl.innerHTML = '<span>&#10003;</span><span>ML model loaded &mdash; ready for prediction</span>';
+        btnEl.disabled = false;
+        btnEl.textContent = 'Calculate Probability';
 
-        // 4. PREDICTION LOGIC 
-        // ------------------------------------------------------------------
-        // Connect this to your actual ML API to fetch the real probability
-        // ------------------------------------------------------------------
-        
-        // Placeholder function to output a probability formatting based on inputs
-        // Replace 'probability' with the actual output variable from your model
-        let mock_probability = 0.654; // E.g., 65.4%
-        
-        // Let's create a dynamic mock probability just so the UI moves when testing
-        let dynamic_prob = (n_age > 65 ? 0.3 : 0.1) + (n_sbp < 100 ? 0.4 : 0.1);
-        if (dynamic_prob > 0.99) dynamic_prob = 0.99;
-        
-        const finalPercentage = (dynamic_prob * 100).toFixed(1);
-
-        // 5. Display the result
-        document.getElementById('result-value').innerText = "High Risk Probability: " + finalPercentage + "%";
-        document.getElementById('result-box').style.display = 'block';
+    } catch (error) {
+        console.error('Failed to load model:', error);
+        statusEl.className = 'model-status error';
+        statusEl.innerHTML = `<span>&#10007;</span><span>Failed to load model: ${error.message}</span>`;
+        btnEl.textContent = 'Model unavailable';
     }
+}
+
+/**
+ * Apply MinMaxScaler to a numerical value:
+ *   scaled = (value - min) / (max - min)
+ */
+function minMaxScale(featureName, value) {
+    if (!SCALER_PARAMS || !SCALER_PARAMS[featureName]) {
+        return value; // No scaling if params unavailable
+    }
+    const { min, max } = SCALER_PARAMS[featureName];
+    if (max === min) return 0;
+    return (value - min) / (max - min);
+}
+
+/**
+ * Preprocess form inputs into the feature vector expected by the model.
+ * Replicates the Python preprocessing:
+ *   1. One-hot encode categorical variables
+ *   2. MinMaxScale numerical variables
+ *   3. Arrange in exact feature order
+ */
+function preprocessInputs() {
+    // Gather raw numerical inputs
+    const n_age = parseFloat(document.getElementById('N_AGE').value) || 0;
+    const n_sbp = parseFloat(document.getElementById('N_SBP').value) || 0;
+    const n_albumin = parseFloat(document.getElementById('N_ALBUMIN').value) || 0;
+    const n_alp = parseFloat(document.getElementById('N_ALP').value) || 0;
+    const n_bilirubin = parseFloat(document.getElementById('N_BILIRUBIN').value) || 0;
+    const n_sodium = parseFloat(document.getElementById('N_SODIUM').value) || 0;
+    const n_urea = parseFloat(document.getElementById('N_UREA').value) || 0;
+    const n_inr = parseFloat(document.getElementById('N_INR').value) || 0;
+    const n_plt_no = parseFloat(document.getElementById('N_PLT_NO').value) || 0;
+    const n_pc_no = parseFloat(document.getElementById('N_PC_NO').value) || 0;
+
+    // Gather categorical inputs and one-hot encode
+    const acidosis = document.getElementById('C_ACIDOSIS').value;
+    const c_acidosis_1 = (acidosis === "1") ? 1 : 0;  // ARTERIAL
+    const c_acidosis_2 = (acidosis === "2") ? 1 : 0;  // VENOUS
+
+    const icu = document.getElementById('C_ICU_PRIOR').value;
+    const c_icu_prior_1 = (icu === "1") ? 1 : 0;  // YES
+    const c_icu_prior_2 = (icu === "2") ? 1 : 0;  // NO
+
+    const cancer = document.getElementById('C_CANCER').value;
+    const c_cancer_0 = (cancer === "0") ? 1 : 0;  // None
+
+    const need_te = document.getElementById('C_NEED_TE').value;
+    const c_need_te_2 = (need_te === "2") ? 1 : 0;  // NO
+
+    const forrest = document.getElementById('C_FORREST').value;
+    const c_forrest_3 = (forrest === "3") ? 1 : 0;  // Clean ulcer base
+
+    // Apply MinMaxScaler to numerical features
+    const scaled = {
+        N_PC_NO: minMaxScale('N_PC_NO', n_pc_no),
+        N_ALBUMIN: minMaxScale('N_ALBUMIN', n_albumin),
+        N_AGE: minMaxScale('N_AGE', n_age),
+        N_ALP: minMaxScale('N_ALP', n_alp),
+        N_SODIUM: minMaxScale('N_SODIUM', n_sodium),
+        N_INR: minMaxScale('N_INR', n_inr),
+        N_PLT_NO: minMaxScale('N_PLT_NO', n_plt_no),
+        N_BILIRUBIN: minMaxScale('N_BILIRUBIN', n_bilirubin),
+        N_UREA: minMaxScale('N_UREA', n_urea),
+        N_SBP: minMaxScale('N_SBP', n_sbp)
+    };
+
+    // Build feature map (categorical are already 0/1, no scaling needed)
+    const featureMap = {
+        N_PC_NO: scaled.N_PC_NO,
+        C_ACIDOSIS_1: c_acidosis_1,
+        N_ALBUMIN: scaled.N_ALBUMIN,
+        N_AGE: scaled.N_AGE,
+        C_NEED_TE_2: c_need_te_2,
+        N_ALP: scaled.N_ALP,
+        N_SODIUM: scaled.N_SODIUM,
+        C_CANCER_0: c_cancer_0,
+        N_INR: scaled.N_INR,
+        N_PLT_NO: scaled.N_PLT_NO,
+        C_FORREST_3: c_forrest_3,
+        N_BILIRUBIN: scaled.N_BILIRUBIN,
+        C_ACIDOSIS_2: c_acidosis_2,
+        C_ICU_PRIOR_1: c_icu_prior_1,
+        N_UREA: scaled.N_UREA,
+        C_ICU_PRIOR_2: c_icu_prior_2,
+        N_SBP: scaled.N_SBP
+    };
+
+    // Arrange in exact feature order
+    const featureArray = FEATURE_ORDER.map(name => featureMap[name]);
+
+    console.log('Feature vector:', featureArray);
+    return featureArray;
+}
+
+/**
+ * Run inference and display the result
+ */
+async function calculateRisk() {
+    if (!session) {
+        alert('Model is not loaded yet. Please wait.');
+        return;
+    }
+
+    // Validate required fields
+    const form = document.getElementById('augib-form');
+    const requiredInputs = form.querySelectorAll('[required]');
+    for (const input of requiredInputs) {
+        if (!input.value || input.value === '') {
+            alert('Please fill in all required fields (marked with *).');
+            input.focus();
+            return;
+        }
+    }
+
+    try {
+        // Preprocess
+        const features = preprocessInputs();
+        const inputTensor = new ort.Tensor('float32', Float32Array.from(features), [1, FEATURE_ORDER.length]);
+
+        // Run ONNX inference
+        const inputName = session.inputNames[0];
+        const feeds = {};
+        feeds[inputName] = inputTensor;
+
+        const results = await session.run(feeds);
+        console.log('Raw model output:', results);
+
+        // Extract probability
+        // LightGBM ONNX output: 'probabilities' (shape [1, 2]) or 'label' + 'probabilities'
+        let probability = 0;
+        if (results.probabilities) {
+            // probabilities tensor: [[prob_class0, prob_class1]]
+            const probs = results.probabilities.data;
+            probability = probs[1]; // probability of positive class (ENDPOINT=1)
+        } else if (results.output_probability) {
+            const probs = results.output_probability.data;
+            probability = probs[1];
+        } else {
+            // Fallback: try to find any probability-like output
+            for (const key of session.outputNames) {
+                const output = results[key];
+                if (output.dims.length >= 1 && output.data.length >= 2) {
+                    probability = output.data[1];
+                    break;
+                }
+            }
+        }
+
+        // Display result
+        const percentage = (probability * 100).toFixed(1);
+        displayResult(percentage, probability);
+
+    } catch (error) {
+        console.error('Inference error:', error);
+        alert('Error running prediction: ' + error.message);
+    }
+}
+
+/**
+ * Display prediction result with risk stratification
+ */
+function displayResult(percentage, probability) {
+    const resultBox = document.getElementById('result-box');
+    const resultValue = document.getElementById('result-value');
+    const riskLabel = document.getElementById('risk-label');
+
+    resultValue.innerText = `Predicted Probability of Poor Outcome: ${percentage}%`;
+
+    // Risk stratification
+    resultBox.classList.remove('low-risk', 'moderate-risk', 'high-risk');
+    if (probability < 0.3) {
+        resultBox.classList.add('low-risk');
+        riskLabel.textContent = 'Low Risk';
+    } else if (probability < 0.6) {
+        resultBox.classList.add('moderate-risk');
+        riskLabel.textContent = 'Moderate Risk';
+    } else {
+        resultBox.classList.add('high-risk');
+        riskLabel.textContent = 'High Risk';
+    }
+
+    resultBox.style.display = 'block';
+}
+
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', initModel);
 </script>
 
 </body>
